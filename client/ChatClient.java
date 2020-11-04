@@ -38,8 +38,7 @@ public class ChatClient extends AbstractClient
    * @param clientUI The interface type variable.
    */
   
-  public ChatClient(String host, int port, ChatIF clientUI) 
-    throws IOException 
+  public ChatClient(String host, int port, ChatIF clientUI) throws IOException 
   {
     super(host, port); //Call the superclass constructor
     this.clientUI = clientUI;
@@ -58,25 +57,93 @@ public class ChatClient extends AbstractClient
   {
     clientUI.display(msg.toString());
   }
-
+  
+  private void readCommand(String command, String message) throws IOException {
+	  	
+	  	ChatClient client;
+	  	
+	    if (command.equals("#quit")) {
+	    	quit();
+	    }
+	    else if (command.equals("#logoff")) {
+	    	closeConnection();
+	    }
+	    else if (command.equals("#login")) {
+	    	if (isConnected()) {
+	    		System.out.println("You are already connected");
+	    	}
+	    	else {
+	    	openConnection();
+	    	}
+	    }
+	    else if (command.equals("#gethost")) {
+	    	System.out.println(getHost());
+	    }
+	    else if (command.equals("#getport")) {
+	    	System.out.println(getPort());
+	    }
+	    else if (command.equals("#sethost")) {
+	    	if (!isConnected() && message != null) {
+	    		setHost(message);
+	    	}
+	    	else {
+	    		System.out.println("You need to be disconnected to change host");
+	    	}		
+	    }
+	    else if (command.equals("setport")) {
+	    	if (!isConnected() && message != null) {
+	    		setPort(Integer.parseInt(message));
+	    	}
+	    	else {
+	    		System.out.println("You need to be disconnected to change port");
+	    	}
+	    }
+  }
+  
+  private void getCommand(String message) throws IOException {
+	  String command = message;
+	  if (command.contains(" ")) {
+		  command = command.split(" ")[0];
+		  readCommand(command, command.split(" ")[1]);
+		  message = message.substring(message.indexOf(" " + 1));
+		  if (message.contains("#")) {
+				getCommand(message.substring(message.indexOf("#")));
+			}
+	  }else {
+		  readCommand(command,null);
+	  }
+  }
+  
   /**
    * This method handles all data coming from the UI            
    *
    * @param message The message from the UI.    
    */
-  public void handleMessageFromClientUI(String message)
+  public void handleMessageFromClientUI(String message) throws IOException
   {
+	
     try
     {
       sendToServer(message);
+      getCommand(message);
     }
     catch(IOException e)
     {
       clientUI.display
         ("Could not send message to server.  Terminating client.");
       quit();
-    }
+    }    
   }
+  
+  
+  protected void connectionClosed() {
+	  System.out.println("Connection is now closed");
+	}
+  
+  protected void connectionException(Exception exception) {
+	  System.out.println("Server is no longer connected. " + " Connection is now closed.");
+	  quit();
+	}
   
   /**
    * This method terminates the client.
